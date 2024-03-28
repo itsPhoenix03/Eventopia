@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   if (eventType === "user.created") {
     const { id, email_addresses, first_name, last_name, username, image_url } =
       evt.data;
-
+    console.log("fired create!");
     // Create a user object to send to DB
     const user: CreateUserParams = {
       clerkId: id,
