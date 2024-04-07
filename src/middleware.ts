@@ -9,14 +9,14 @@ export default authMiddleware({
     "/",
     "/event/:id",
     "/api/webhooks/clerk",
-    "/api/webhooks/strip",
+    "/api/webhooks/stripe",
     "/api/uploadthing",
   ],
 
   // Ignore these routes
   ignoredRoutes: [
     "/api/webhooks/clerk",
-    "/api/webhooks/strip",
+    "/api/webhooks/stripe",
     "/api/uploadthing",
   ],
 });

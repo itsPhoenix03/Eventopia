@@ -10,7 +10,7 @@ export async function createUser(user: CreateUserParams) {
   try {
     // Trying to connect to DB using the cached string or creating a new one
     await connectToDatabase();
-    console.log("user - ", user);
+
     // Creating a new user
     const newUser = await User.create(user);
 
