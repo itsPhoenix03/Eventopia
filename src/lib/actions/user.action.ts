@@ -22,13 +22,32 @@ export async function createUser(user: CreateUserParams) {
   }
 }
 
+export async function getUserById(userId: string) {
+  try {
+    // Trying to connect to DB using the cached string or creating a new one
+    await connectToDatabase();
+
+    // Fetching the user based on userId
+    const user = await User.findById(userId);
+
+    // If no user found
+    if (!user) throw new Error("User not found");
+
+    // Returning the ID of the user
+    return JSON.parse(JSON.stringify(user));
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
 export async function updateUser(clerkId: string, user: UpdateUserParams) {
   try {
     // Trying to connect to DB using the cached string or creating the new one
     await connectToDatabase();
 
     // Update the user
-    const updatedUser = await User.findOneAndUpdate({ clerkId }, user, {
+    const updateUser = await User.findOneAndUpdate({ clerkId }, user, {
       new: true,
     });
 
@@ -47,14 +66,14 @@ export async function deleteUser(clerkId: string) {
     await connectToDatabase();
 
     // Finding the User in the DB
-    const deletingUser = await User.findOne({ clerkId });
+    const userToBeDeleted = await User.findOne({ clerkId });
 
-    if (!deletingUser) throw new Error("User not found");
+    if (!userToBeDeleted) throw new Error("User not found");
 
     //TODO: Some more actions are left to done such as:- deleting all the events of the organizer
 
     // Deleting the user from DB
-    const deletedUser = await User.findByIdAndDelete({ clerkId });
+    const deletedUser = await User.findByIdAndDelete(userToBeDeleted._id);
 
     // Going back to home page after action is performed
     revalidatePath("/");
