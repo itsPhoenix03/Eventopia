@@ -7,7 +7,7 @@ export default authMiddleware({
   // Allow signed out users to access the specified routes:
   publicRoutes: [
     "/",
-    "/event/:id",
+    "/events/:id",
     "/api/webhooks/clerk",
     "/api/webhooks/stripe",
     "/api/uploadthing",
