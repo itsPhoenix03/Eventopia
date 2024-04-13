@@ -1,4 +1,4 @@
-import { startTransition, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,10 @@ import {
 
 import { ICategory } from "@/lib/database/model/category.model";
 import { Input } from "../ui/input";
+import {
+  createCategory,
+  getAllCategories,
+} from "@/lib/actions/category.action";
 
 type DropDownProps = {
   value?: string;
@@ -36,8 +40,24 @@ function DropDown({ value, onChangeHandler }: DropDownProps) {
 
   // Function to add the new category
   const handleAddCategory = () => {
-    // TODO: Complete the implementation of this function
+    // Calling the server action to create the new category & add to the existing list of categories
+    createCategory({ categoryName: newCategory.trim() })
+      .then((category) => setCategories((prev) => [...prev, category]))
+      .catch((error) => console.error(error));
   };
+
+  // Fetching all the categories from the DB
+  useEffect(() => {
+    const getCategoriesList = () => {
+      // Getting all the categories from the DB
+      getAllCategories()
+        .then((categoriesList) => setCategories(categoriesList))
+        .catch((error) => console.error(error));
+    };
+
+    // Calling the above function
+    getCategoriesList();
+  }, []);
 
   return (
     <Select onValueChange={onChangeHandler} defaultValue={value}>

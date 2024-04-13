@@ -6,7 +6,7 @@ function Footer() {
     <footer className="border-t">
       <div className="flex flex-between flex-center gap-4 flex-col sm:flex-row wrapper p-5 text-center">
         <p className="text-xs text-gray-500">
-          Eventopia &copy;&nbsp;{new Date().getFullYear() + 2}&nbsp;All rights
+          Evently &copy;&nbsp;{new Date().getFullYear() + 2}&nbsp;All rights
           reserved
         </p>
 

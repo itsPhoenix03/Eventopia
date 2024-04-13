@@ -13,7 +13,7 @@ function Header() {
         <Link href={"/"}>
           <Image
             src={"/assets/images/logo.svg"}
-            alt="Eventopia Logo"
+            alt="Evently Logo"
             width={128}
             height={38}
           />

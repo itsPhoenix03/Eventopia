@@ -26,6 +26,9 @@ import FileUploader from "./FileUploader";
 import { useState } from "react";
 import Image from "next/image";
 import { Checkbox } from "../ui/checkbox";
+import { useUploadThing } from "@/lib/uploadthing";
+import { useRouter } from "next/navigation";
+import { createEvent } from "@/lib/actions/event.action";
 
 type EventFormProps = {
   userId: string;
@@ -33,6 +36,11 @@ type EventFormProps = {
 };
 
 function EventForm({ userId, type }: EventFormProps) {
+  // Router
+  const router = useRouter();
+
+  // File Uploading hooks
+  const { startUpload } = useUploadThing("imageUploader");
   // Files State
   const [files, setFiles] = useState<File[]>([]);
 
@@ -46,8 +54,40 @@ function EventForm({ userId, type }: EventFormProps) {
   });
 
   // On submit function
-  function onSubmit(values: z.infer<typeof eventFormSchema>) {
-    // TODO: Complete the function for on submit.
+  async function onSubmit(values: z.infer<typeof eventFormSchema>) {
+    // Setting up the Image URL
+    let uploadImageUrl = values.imageUrl;
+
+    // Checking if the user had selected some images to be uploaded
+    if (files.length > 0) {
+      // Uploading the images
+      const uploadImages = await startUpload(files);
+
+      // If no images are there then return from the function
+      if (!uploadImages) return;
+
+      // Otherwise assign the first URL to Image URL field
+      uploadImageUrl = uploadImages[0].url;
+    }
+
+    // Creating a new event
+    if (type === "Create") {
+      try {
+        // Server action to create the new event in DB
+        const newEvent = await createEvent({
+          event: { ...values, imageUrl: uploadImageUrl },
+          userId,
+          path: "/profile",
+        });
+        if (newEvent) {
+          form.reset();
+          router.push(`/events/${newEvent._id}`);
+        }
+      } catch (error) {
+        // Error Logging
+        console.error(error);
+      }
+    }
   }
 
   return (
@@ -163,7 +203,7 @@ function EventForm({ userId, type }: EventFormProps) {
           {/* Start Date Field */}
           <FormField
             control={form.control}
-            name="startDate"
+            name="startDateTime"
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormControl>
@@ -197,7 +237,7 @@ function EventForm({ userId, type }: EventFormProps) {
           {/* End Date Field */}
           <FormField
             control={form.control}
-            name="endDate"
+            name="endDateTime"
             render={({ field }) => (
               <FormItem className="w-full">
                 <FormControl>
