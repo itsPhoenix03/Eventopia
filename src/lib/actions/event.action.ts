@@ -1,11 +1,18 @@
 "use server";
 
-import { CreateEventParams } from "@/types";
+import {
+  CreateEventParams,
+  DeleteEventParams,
+  GetAllEventsParams,
+  GetRelatedEventsByCategoryParams,
+  UpdateEventParams,
+} from "@/types";
 import { handleError } from "../utils";
 import { connectToDatabase } from "../database";
 import User from "../database/model/user.model";
 import Event from "../database/model/event.model";
 import Category from "../database/model/category.model";
+import { revalidatePath } from "next/cache";
 
 async function populateEvent(query: any) {
   return query
@@ -45,6 +52,52 @@ export async function createEvent({ event, userId, path }: CreateEventParams) {
   }
 }
 
+export async function updateEvent({ userId, event, path }: UpdateEventParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    await connectToDatabase();
+
+    // Check if the event is present in the DB and the user updating is the creator
+    const eventToUpdate = await Event.findById(event._id);
+
+    if (!eventToUpdate || eventToUpdate.organizer.toHexString() !== userId) {
+      throw new Error("Unauthorized or event not found");
+    }
+
+    // Update the event
+    const updatedEvent = await Event.findByIdAndUpdate(
+      event._id,
+      { ...event, category: event.categoryId },
+      { new: true }
+    );
+
+    // Revalidate the path
+    revalidatePath(path);
+
+    // Return the updated event
+    return JSON.parse(JSON.stringify(updatedEvent));
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
+export async function deleteEvent({ eventId, path }: DeleteEventParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    connectToDatabase();
+
+    // Deleting the event from the DB
+    const deletedEvent = await Event.findByIdAndDelete(eventId);
+
+    // If their was a deleted then revalidate the path
+    if (deletedEvent) revalidatePath(path);
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
 export async function getEventById(eventId: string) {
   try {
     // Connecting to DB using the cached connection otherwise creating a new one
@@ -61,6 +114,81 @@ export async function getEventById(eventId: string) {
 
     // Return the event details
     return JSON.parse(JSON.stringify(eventDetails));
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
+export async function getAllEvents({
+  query,
+  limit = 6,
+  page,
+  category,
+}: GetAllEventsParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    await connectToDatabase();
+
+    // conditions for searching the events
+    const conditions = {};
+
+    // Searching the events in DB based on the conditions
+    // Order for the events is latest events to older events
+    const eventsQuery = Event.find(conditions)
+      .sort({ createdAt: "desc" })
+      .skip(0)
+      .limit(limit);
+
+    // Populating the events for the values of category and organizer
+    const events = await populateEvent(eventsQuery);
+
+    // Calculating the total number of events
+    const eventsCount = await Event.countDocuments(events);
+
+    // Returning a custom object with data and current page number
+    return {
+      data: JSON.parse(JSON.stringify(events)),
+      totalPages: Math.ceil(eventsCount / limit),
+    };
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
+export async function getRelatedEventByCategory({
+  categoryId,
+  eventId,
+  page,
+  limit = 6,
+}: GetRelatedEventsByCategoryParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    await connectToDatabase();
+
+    // How many documents to skip on page change
+    const skipAmount = (Number(page) - 1) * limit;
+
+    // Query condition
+    const query = {
+      $and: [{ category: categoryId }, { _id: { $ne: eventId } }],
+    };
+    // Fetching the related events based on the category;
+    const relatedEventsQuery = Event.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(limit);
+
+    // Populate the values in the event object
+    const relatedEvents = await populateEvent(relatedEventsQuery);
+    const eventsCount = await Event.countDocuments(query);
+
+    // Return the result
+    return {
+      data: JSON.parse(JSON.stringify(relatedEvents)),
+      totalPages: Math.ceil(eventsCount / limit),
+    };
   } catch (error) {
     // Error Handling
     handleError(error);

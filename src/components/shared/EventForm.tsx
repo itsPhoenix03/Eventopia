@@ -28,14 +28,17 @@ import Image from "next/image";
 import { Checkbox } from "../ui/checkbox";
 import { useUploadThing } from "@/lib/uploadthing";
 import { useRouter } from "next/navigation";
-import { createEvent } from "@/lib/actions/event.action";
+import { createEvent, updateEvent } from "@/lib/actions/event.action";
+import { IEvent } from "@/lib/database/model/event.model";
 
 type EventFormProps = {
   userId: string;
   type: "Create" | "Update";
+  event?: IEvent;
+  eventId?: string;
 };
 
-function EventForm({ userId, type }: EventFormProps) {
+function EventForm({ userId, type, event, eventId }: EventFormProps) {
   // Router
   const router = useRouter();
 
@@ -45,7 +48,14 @@ function EventForm({ userId, type }: EventFormProps) {
   const [files, setFiles] = useState<File[]>([]);
 
   //  Default values for the form
-  const initialValues = eventDefaultValues;
+  const initialValues =
+    event && type === "Update"
+      ? {
+          ...event,
+          startDateTime: new Date(event.startDateTime),
+          endDateTime: new Date(event.endDateTime),
+        }
+      : eventDefaultValues;
 
   // Setting up the form using the react hook form
   const form = useForm<z.infer<typeof eventFormSchema>>({
@@ -85,6 +95,33 @@ function EventForm({ userId, type }: EventFormProps) {
         }
       } catch (error) {
         // Error Logging
+        console.error(error);
+      }
+    }
+
+    // Update the event
+    if (type === "Update") {
+      // If event id is not present
+      if (!eventId) {
+        router.back();
+        return;
+      }
+
+      try {
+        // Updating the fields
+        const updatedEvent = await updateEvent({
+          userId,
+          event: { ...values, _id: eventId, imageUrl: uploadImageUrl },
+          path: `/events/${eventId}`,
+        });
+
+        // If event is updated then
+        if (updatedEvent) {
+          form.reset();
+          router.push(`/events/${updatedEvent._id}`);
+        }
+      } catch (error) {
+        // Error Handling
         console.error(error);
       }
     }

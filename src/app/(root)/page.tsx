@@ -1,8 +1,18 @@
+import Collection from "@/components/shared/Collection";
 import { Button } from "@/components/ui/button";
+import { getAllEvents } from "@/lib/actions/event.action";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Home() {
+export default async function Home() {
+  // Fetching the events
+  const events = await getAllEvents({
+    query: "",
+    category: "",
+    limit: 6,
+    page: 1,
+  });
+
   return (
     <>
       {/* Hero Banner Section */}
@@ -44,6 +54,16 @@ export default function Home() {
         <div className="w-full flex flex-col gap-5 md:flex-row">
           Search Category Filter
         </div>
+
+        <Collection
+          data={events?.data}
+          collectionType="All_Events"
+          emptyTitle="No Events Found"
+          emptyStateSubText="Check back later!"
+          limit={6}
+          page={1}
+          totalPages={1}
+        />
       </section>
     </>
   );
