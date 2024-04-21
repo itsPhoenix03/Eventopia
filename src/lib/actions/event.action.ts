@@ -4,6 +4,7 @@ import {
   CreateEventParams,
   DeleteEventParams,
   GetAllEventsParams,
+  GetEventsByUserParams,
   GetRelatedEventsByCategoryParams,
   UpdateEventParams,
 } from "@/types";
@@ -114,6 +115,37 @@ export async function getEventById(eventId: string) {
 
     // Return the event details
     return JSON.parse(JSON.stringify(eventDetails));
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
+export async function getEventByUser({
+  userId,
+  page,
+  limit = 6,
+}: GetEventsByUserParams) {
+  try {
+    // Connecting to DB using the cached connection or creating a new one
+    await connectToDatabase();
+
+    // Finding the events organized by user
+    const condition = { organizer: userId };
+    const skipAmount = (page - 1) * limit;
+
+    const eventQuery = Event.find(condition)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(limit);
+
+    const event = await populateEvent(eventQuery);
+    const eventsCount = await Event.countDocuments(event);
+
+    return {
+      data: JSON.parse(JSON.stringify(event)),
+      totalPages: Math.ceil(eventsCount / limit),
+    };
   } catch (error) {
     // Error Handling
     handleError(error);

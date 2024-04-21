@@ -1,3 +1,4 @@
+import CheckoutButton from "@/components/shared/CheckoutButton";
 import Collection from "@/components/shared/Collection";
 import {
   getEventById,
@@ -38,7 +39,7 @@ async function EventDetails({ params: { id } }: SearchParamProps) {
               {/* Event Title */}
               <h2 className="h2-bold">{event.title}</h2>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 {/* Events Price Tag and Category Tag */}
                 <div className="flex gap-3">
                   {/* Price Tag */}
@@ -62,7 +63,7 @@ async function EventDetails({ params: { id } }: SearchParamProps) {
               </div>
             </div>
 
-            {/* TODO: CHECKOUT BUTTON */}
+            <CheckoutButton event={event} />
 
             {/* Description and Other Info Section */}
             <div className="flex flex-col gap-5">
