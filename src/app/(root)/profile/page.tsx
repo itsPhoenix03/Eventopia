@@ -1,16 +1,28 @@
 import Collection from "@/components/shared/Collection";
 import { Button } from "@/components/ui/button";
 import { getEventByUser } from "@/lib/actions/event.action";
+import { getOrdersByUser } from "@/lib/actions/order.action";
+import { IOrder } from "@/lib/database/model/order.model";
+import { SearchParamProps } from "@/types";
 import { auth } from "@clerk/nextjs";
 import Link from "next/link";
 import React from "react";
 
-async function ProfilePage() {
+async function ProfilePage({ searchParams }: SearchParamProps) {
   const { sessionClaims } = auth();
   const userId = sessionClaims?.userId as string;
 
+  // Retrieving the page number for pagination process
+  const ordersPage = Number(searchParams?.ordersPage) || 1;
+  const eventsPage = Number(searchParams?.eventsPage) || 1;
+
+  // User Purchased Events
+  const orders = await getOrdersByUser({ userId, page: ordersPage });
+  const purchasedEvents =
+    orders?.data.map((order: IOrder) => order.event) || [];
+
   // User Organized Events
-  const organizedEvents = await getEventByUser({ userId, page: 1 });
+  const organizedEvents = await getEventByUser({ userId, page: eventsPage });
 
   return (
     <>
@@ -26,14 +38,14 @@ async function ProfilePage() {
 
       <section className="wrapper my-8">
         <Collection
-          data={[]}
+          data={purchasedEvents}
           collectionType="My_Tickets"
           emptyTitle="No event tickets purchased yet!"
           emptyStateSubText="No worries - plenty of exciting events to explore!"
           limit={3}
-          // urlParamName=""
-          page={1}
-          totalPages={1}
+          urlParamName="ordersPage"
+          page={ordersPage}
+          totalPages={orders?.totalPages}
         />
       </section>
 
@@ -56,8 +68,9 @@ async function ProfilePage() {
           emptyTitle="No events have been created yet!"
           emptyStateSubText="Go create some now!"
           limit={6}
-          page={1}
-          totalPages={1}
+          urlParamName="eventsPage"
+          page={eventsPage}
+          totalPages={organizedEvents?.totalPages}
         />
       </section>
     </>

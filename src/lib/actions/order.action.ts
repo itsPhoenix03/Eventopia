@@ -1,12 +1,14 @@
 "use server";
 
 import { Stripe } from "stripe";
+import { redirect } from "next/navigation";
+import { ObjectId } from "mongodb";
 import {
   CheckoutOrderParams,
   CreateOrderParams,
+  GetOrdersByEventParams,
   GetOrdersByUserParams,
 } from "@/types";
-import { redirect } from "next/navigation";
 import { handleError } from "../utils";
 import { connectToDatabase } from "../database";
 import Order from "../database/model/order.model";
@@ -111,6 +113,75 @@ export async function getOrdersByUser({
     };
   } catch (error) {
     // Error Handling
+    handleError(error);
+  }
+}
+
+export async function getOrdersByEvent({
+  eventId,
+  searchString,
+}: GetOrdersByEventParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    await connectToDatabase();
+
+    // Check to find the event id exists
+    if (!eventId) throw new Error("Event ID is required");
+    const eventObjectId = new ObjectId(eventId);
+
+    // Finding the purchased user details
+    const orders = await Order.aggregate([
+      // Using lookup to apply the join and find the in Users collection and finding the user where buyer === _id, then returning an [{users/buyers}]
+      {
+        $lookup: {
+          from: "users",
+          localField: "buyer",
+          foreignField: "_id",
+          as: "buyer",
+        },
+      },
+      // Using the above [{users/buyers}] and then making single entries based on the buyer field i.e. [{users/buyers}] -> {user/buyer}, {user/buyer}....
+      {
+        $unwind: "$buyer",
+      },
+      {
+        $lookup: {
+          from: "events",
+          localField: "event",
+          foreignField: "_id",
+          as: "event",
+        },
+      },
+      {
+        $unwind: "$event",
+      },
+      // Using this to define what to Output after this aggregation process
+      {
+        $project: {
+          _id: 1,
+          totalAmount: 1,
+          createdAt: 1,
+          eventTitle: "$event.title",
+          eventId: "$event._id",
+          buyer: {
+            $concat: ["$buyer.firstName", " ", "$buyer.lastName"],
+          },
+        },
+      },
+      // This is for finding the matched user in this result
+      {
+        $match: {
+          $and: [
+            { eventId: eventObjectId },
+            { buyer: { $regex: RegExp(searchString, "i") } },
+          ],
+        },
+      },
+    ]);
+
+    return JSON.parse(JSON.stringify(orders));
+  } catch (error) {
+    // Handle Error
     handleError(error);
   }
 }
