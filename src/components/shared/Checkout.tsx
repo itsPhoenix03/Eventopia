@@ -33,7 +33,7 @@ function Checkout({ event, userId }: { event: IEvent; userId: string }) {
       isFree: event.isFree,
       buyerId: userId,
     };
-
+    // console.log(order);
     await checkoutOrder(order);
   };
 

@@ -68,7 +68,7 @@ export async function POST(req: Request) {
       username: username!,
       photo: image_url,
     };
-
+    console.log("web hook - create user func.");
     // DB call using server action
     const newUser = await createUser(user);
 
