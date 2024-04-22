@@ -1,11 +1,17 @@
 "use server";
 
 import { Stripe } from "stripe";
-import { CheckoutOrderParams, CreateOrderParams } from "@/types";
+import {
+  CheckoutOrderParams,
+  CreateOrderParams,
+  GetOrdersByUserParams,
+} from "@/types";
 import { redirect } from "next/navigation";
 import { handleError } from "../utils";
 import { connectToDatabase } from "../database";
 import Order from "../database/model/order.model";
+import Event from "../database/model/event.model";
+import User from "../database/model/user.model";
 
 // Stripe Functionality Only no DB related stuff
 // --------------------------
@@ -60,6 +66,49 @@ export async function createOrder(order: CreateOrderParams) {
     });
 
     return JSON.parse(JSON.stringify(newOrder));
+  } catch (error) {
+    // Error Handling
+    handleError(error);
+  }
+}
+
+export async function getOrdersByUser({
+  userId,
+  page,
+  limit = 3,
+}: GetOrdersByUserParams) {
+  try {
+    // Connecting to DB using the cached connection otherwise creating a new one
+    await connectToDatabase();
+
+    const skipAmount = (Number(page) - 1) * limit;
+    const conditions = { buyer: userId };
+
+    // Finding the user orders
+    const userOrders = await Order.distinct("event._id")
+      .find(conditions)
+      .sort({ createdAt: "desc" })
+      .skip(skipAmount)
+      .limit(limit)
+      .populate({
+        path: "event",
+        model: Event,
+        populate: {
+          path: "organizer",
+          model: User,
+          select: "_id firstName lastName",
+        },
+      });
+
+    // Counting the total orders
+    const ordersCount = await Order.distinct("event._id").countDocuments(
+      conditions
+    );
+
+    return {
+      data: JSON.parse(JSON.stringify(userOrders)),
+      totalPages: Math.ceil(ordersCount / limit),
+    };
   } catch (error) {
     // Error Handling
     handleError(error);

@@ -53,8 +53,8 @@ async function ProfilePage() {
         <Collection
           data={organizedEvents?.data}
           collectionType="Events_Organized"
-          emptyTitle="No events have been created yet"
-          emptyStateSubText="Go create some now"
+          emptyTitle="No events have been created yet!"
+          emptyStateSubText="Go create some now!"
           limit={6}
           page={1}
           totalPages={1}
