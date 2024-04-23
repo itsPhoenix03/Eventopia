@@ -8,14 +8,17 @@ import { formatDateTime } from "@/lib/utils";
 import { SearchParamProps } from "@/types";
 import Image from "next/image";
 
-async function EventDetails({ params: { id } }: SearchParamProps) {
+async function EventDetails({
+  params: { id },
+  searchParams,
+}: SearchParamProps) {
   const event = await getEventById(id);
 
   // Fetching the related events based on the category
   const relatedEvents = await getRelatedEventByCategory({
     categoryId: event.category._id,
     eventId: event._id,
-    page: 1,
+    page: searchParams.page as string,
     limit: 6,
   });
 
@@ -128,9 +131,9 @@ async function EventDetails({ params: { id } }: SearchParamProps) {
           collectionType="All_Events"
           emptyTitle="No Events Found"
           emptyStateSubText="Check back later!"
-          limit={6}
-          page={1}
-          totalPages={1}
+          limit={3}
+          page={searchParams.page as string}
+          totalPages={relatedEvents?.totalPages}
         />
       </section>
     </>
