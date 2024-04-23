@@ -15,6 +15,10 @@ import Event from "../database/model/event.model";
 import Category from "../database/model/category.model";
 import { revalidatePath } from "next/cache";
 
+async function getCategoryByName(name: string) {
+  return Category.findOne({ name: { $regex: name, $options: "i" } });
+}
+
 async function populateEvent(query: any) {
   return query
     .populate({
@@ -45,6 +49,7 @@ export async function createEvent({ event, userId, path }: CreateEventParams) {
       category: event.categoryId,
     });
 
+    revalidatePath(path);
     // Return the newly created event
     return JSON.parse(JSON.stringify(newEvent));
   } catch (error) {
@@ -162,14 +167,32 @@ export async function getAllEvents({
     // Connecting to DB using the cached connection otherwise creating a new one
     await connectToDatabase();
 
+    // Finding the events based on the title or search params
+    const titleCondition = query
+      ? { title: { $regex: query, $options: "i" } }
+      : {};
+
+    // Finding events based on the category filter
+    const categoryCondition = category
+      ? await getCategoryByName(category)
+      : null;
+
     // conditions for searching the events
-    const conditions = {};
+    const conditions = {
+      $and: [
+        titleCondition,
+        categoryCondition ? { category: categoryCondition._id } : {},
+      ],
+    };
+
+    // Skip count
+    const skipCount = Number(page - 1) * limit;
 
     // Searching the events in DB based on the conditions
     // Order for the events is latest events to older events
     const eventsQuery = Event.find(conditions)
       .sort({ createdAt: "desc" })
-      .skip(0)
+      .skip(skipCount)
       .limit(limit);
 
     // Populating the events for the values of category and organizer
